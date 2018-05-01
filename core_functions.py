@@ -13,10 +13,17 @@ def sum_data(file_name):
     :return: float, int, 求和结果， 有效读取的数据行数
     """
     result = 0
+    unit_level = 1
     with open(file_name, "r") as data:
         line_num = 0
         for line in data:
             if line_num == 0:
+                items = line.strip().split("\t")
+                unit = items[0].lower()
+                print(unit)
+                if unit == "kpa":
+                    print("kpa level")
+                    unit_level = 1000
                 line_num += 1
                 continue
             items = line.strip().split("\t")
@@ -24,7 +31,7 @@ def sum_data(file_name):
                 print("please check data quality in " + file_name)
                 continue
             try:
-                mpa = float(items[0])
+                mpa = float(items[0]) / unit_level
                 per = float(items[1])
             except Exception as e:
                 print("data type not float, please check " + file_name)
