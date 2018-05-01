@@ -3,6 +3,8 @@ import os
 import sys
 from Tkinter import *
 from FileDialog import *
+import tkFileDialog
+
 import core_functions
 
 
@@ -15,9 +17,9 @@ class MainPanel:
         self.root.mainloop()
 
     def select_folder(self):
-        fd = LoadFileDialog(self.root)
-        self.selected_folder = fd.go()
-        core_functions.get_files(self.selected_folder, ".txt")
+		self.selected_folder = tkFileDialog.askdirectory()
+		print(self.selected_folder)
+        files = core_functions.get_files(self.selected_folder,".txt")
 
 def main():
     main_panel = MainPanel()
