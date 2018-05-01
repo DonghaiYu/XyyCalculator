@@ -44,14 +44,19 @@ class MainPanel:
         files = core_functions.get_files(self.selected_folder, ".txt")
         result_lst = []
         for file_item in files:
+            file_path, file_name = os.path.split(file_item)
+            try:
+                file_sort_index = int(file_name[:-4])
+            except Exception as e:
+                file_sort_index = 0
             sum_result, sum_line_num = core_functions.sum_data(file_item)
-            result_lst.append([file_item, sum_result, sum_line_num])
+            result_lst.append([file_path, file_sort_index, file_name, sum_result, sum_line_num])
 
-        result_lst.sort(key=lambda x: x[0])
+        result_lst.sort(key=lambda x: (x[0], x[1]))
 
         current_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
         with open("./data/Young_modulus_sum_{}.csv".format(current_time), "w") as result_file:
-            result_file.writelines(",".join(["file path", "sum result", "file line num"]) + "\n")
+            result_file.writelines(",".join(["folder path", "file index", "file name", "sum result", "file line num"]) + "\n")
             for item in result_lst:
                 print(item)
                 items = [str(x) for x in item]

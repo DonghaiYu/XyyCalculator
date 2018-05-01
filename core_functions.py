@@ -19,10 +19,8 @@ def sum_data(file_name):
         for line in data:
             if line_num == 0:
                 items = line.strip().split("\t")
-                unit = items[0].lower()
-                print(unit)
+                unit = items[0].lower().strip()
                 if unit == "kpa":
-                    print("kpa level")
                     unit_level = 1000
                 line_num += 1
                 continue
@@ -38,7 +36,8 @@ def sum_data(file_name):
                 continue
             result += mpa * per
             line_num += 1
-    return result, line_num
+        result /= 100
+    return result, line_num - 1
 
 
 def get_files(path, suffix):
