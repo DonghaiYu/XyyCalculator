@@ -1,4 +1,8 @@
 # coding=utf-8
+"""
+Author: Dylan
+For my love, XYY
+"""
 import os
 
 
@@ -45,4 +49,4 @@ def get_files(path, suffix):
             return_result.extend(childes)
         elif os.path.splitext(current_path)[1] == suffix:
                 return_result.append(current_path)
-    return  return_result
+    return return_result
