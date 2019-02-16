@@ -39,32 +39,37 @@ class MainPanel:
         self.yang_sum_b.pack(side=LEFT)
         self.yang_frame.pack()
 
-        self.split_line1 = Label(self.root, text="========细胞编号串联==========")
+        self.split_line1 = Label(self.root, text="========cell label analysis==========")
         self.split_line1.pack()
 
         # 细胞标签分析模块
         self.cell_label_frame = Frame(self.root)
-        self.cell_label_folder_b = Button(self.cell_label_frame, text="选择文件夹", height=2, width=10, command=self.cell_label_folder)
-        self.hour_label = Label(self.cell_label_frame, text="--> 时间点(h):")
+        self.cell_label_folder_b = Button(self.cell_label_frame, text="choose data folder", height=2, width=15, command=self.cell_label_folder)
+        self.hour_label = Label(self.cell_label_frame, text="--> hours:")
         self.hours = Entry(self.cell_label_frame, width=10)
         self.hours.insert(END, '0,24')
+        self.hour_suffix_label = Label(self.cell_label_frame, text=" file suffix:")
+        self.hours_suffix = Entry(self.cell_label_frame, width=10)
+        self.hours_suffix.insert(END, 'h cell No')
 
-        self.cell_analysis_b = Button(self.cell_label_frame, text="细胞标签分析", height=2, width=10, command=self.cell_analysis)
+        self.cell_analysis_b = Button(self.cell_label_frame, text="go", height=2, width=10, command=self.cell_analysis)
 
         self.cell_label_folder_b.pack(side=LEFT)
         self.hour_label.pack(side=LEFT)
         self.hours.pack(side=LEFT)
+        self.hour_suffix_label.pack(side=LEFT)
+        self.hours_suffix.pack(side=LEFT)
         self.cell_analysis_b.pack(side=LEFT)
         self.cell_label_frame.pack()
 
         # 日志区
-        self.text_box = Text(self.root, wrap='word', height=11, width=100)
+        self.text_box = Text(self.root, wrap='word', height=15, width=100)
         # self.text_box.grid(column=0, row=0, columnspan=2, sticky='NSWE', padx=5, pady=5)
         self.text_box.pack()
         sys.stdout = StdoutRedirector(self.text_box)
 
         self.root.title("圆圆计算器")
-        self.center_window(self.root, 500, 400)
+        self.center_window(self.root, 700, 500)
         self.root.mainloop()
 
     def center_window(self, root, width, height):
@@ -78,11 +83,39 @@ class MainPanel:
 
     def cell_label_folder(self):
         self.cell_label_data_folder = tkFileDialog.askdirectory()
-        print(self.cell_label_data_folder)
+        print("your selected folder: {}".format(self.cell_label_data_folder))
 
     def cell_analysis(self):
-        print("dylan")
-        pass
+        hours = self.hours.get()
+        hours = hours.split(",")
+        hours = [int(x) for x in hours]
+        area_suffix = self.hours_suffix.get()
+        area_files = ["{}{}.csv".format(h, area_suffix) for h in hours]
+        area_f_set = set(area_files)
+        find_area_f_set = set()
+        interval_folders = []
+
+        if not os.path.isdir(self.cell_label_data_folder):
+            print("error! unknown data path: {}".format(self.cell_label_data_folder))
+            return
+        for f in os.listdir(self.cell_label_data_folder):
+            if f in area_f_set:
+                find_area_f_set.add(f)
+            abs_path = self.cell_label_data_folder + "/" + f
+            if os.path.isdir(abs_path):
+                interval_folders.append(abs_path)
+
+        if len(find_area_f_set) == len(area_f_set):
+            print("find all the area files, success. area files:")
+            print(area_files)
+        else:
+            print("error! can not find {}".format(area_f_set - find_area_f_set))
+            return
+
+        print("label2label map data folders:")
+        print(interval_folders)
+
+        core_functions.label_analysis(self.cell_label_data_folder, area_suffix, interval_folders, hours)
 
     def sum_all_yang_value(self):
         """
