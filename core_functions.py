@@ -87,16 +87,48 @@ def save_label_result(result_dict, interval_folder, hours):
         head_title.extend(["{}h_area".format(h), "{}/{}".format(h, hours[0])])
     save_lst.append(head_title)
 
+    tail_title = ["average"]
     tmp_result = result_dict[hours[0], hours[1]]
+    start_area_lst = []
+    end_area_lst = []
+    spe_value_lst = []
+    for l in tmp_result:
+        a, b, c = tmp_result[l]
+        start_area_lst.append(a)
+        end_area_lst.append(b)
+        spe_value_lst.append(c)
+    tail_title.extend([sum(start_area_lst) / len(start_area_lst),
+                       sum(end_area_lst) / len(end_area_lst),
+                       sum(spe_value_lst) / len(spe_value_lst)])
+
     if len(hours) > 2:
         for h in hours[2:]:
+            end_area_lst = []
+            spe_value_lst = []
             for k in tmp_result:
-                tmp_result[k].extend(result_dict[hours[0], h].get(k, [-1, -1, -1])[1:])
+                if k in result_dict[hours[0], h]:
+                    a, b, c = result_dict[hours[0], h][k]
+                    tmp_result[k].extend([b, c])
+                    end_area_lst.append(b)
+                    spe_value_lst.append(c)
+                else:
+                    tmp_result[k].extend(['', ''])
+
+            if len(end_area_lst) == 0:
+                tail_title.append(0)
+            else:
+                tail_title.append(sum(end_area_lst) / len(end_area_lst))
+            if len(spe_value_lst) == 0:
+                tail_title.append(0)
+            else:
+                tail_title.append(sum(spe_value_lst) / len(spe_value_lst))
 
     for k in tmp_result:
         tmp_lst = [k] + tmp_result[k]
         tmp_lst = [str(x) for x in tmp_lst]
         save_lst.append(tmp_lst)
+    tail_title = [str(x) for x in tail_title]
+    save_lst.append(tail_title)
 
     with open("{}/result.csv".format(interval_folder), "w") as save_file:
         for l in save_lst:
