@@ -67,17 +67,20 @@ def label_analysis(base_path, area_suffix, interval_folders, hours):
 
     # analysis each folder
     for interval_folder in interval_folders:
-        print("\n****************************\n")
+        print("\n************** START **************\n")
         print("analysis {}".format(interval_folder))
         area_map_dict = read_area_map(interval_folder, hours)
 
-        analysis_result = chain_analysis(area_dict, area_map_dict, hours)
-        if analysis_result:
-            print("success")
-        else:
-            print("failed")
+        for i in range(len(hours) - 1):
+            inters = hours[i:]
+            analysis_result = chain_analysis(area_dict, area_map_dict, inters)
+            if analysis_result:
+                print("success")
+            else:
+                print("failed")
 
-        save_label_result(analysis_result, interval_folder, hours)
+            save_label_result(analysis_result, interval_folder, inters)
+        print("\n************** END **************\n")
 
 
 def save_label_result(result_dict, interval_folder, hours):
@@ -130,7 +133,7 @@ def save_label_result(result_dict, interval_folder, hours):
     tail_title = [str(x) for x in tail_title]
     save_lst.append(tail_title)
 
-    with open("{}/result.csv".format(interval_folder), "w") as save_file:
+    with open("{}/result_{}-{}.csv".format(interval_folder, hours[0], hours[-1]), "w") as save_file:
         for l in save_lst:
             save_file.writelines(",".join(l) + "\n")
 
