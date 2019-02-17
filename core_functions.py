@@ -66,11 +66,17 @@ def label_analysis(base_path, area_suffix, interval_folders, hours):
     area_dict = read_cell_area(base_path, area_suffix, hours)
 
     # analysis each folder
+
+    total_result = {}
+    folder_cnt = 0
+    total_head = [""]
     for interval_folder in interval_folders:
         print("\n************** START **************\n")
         print("analysis {}".format(interval_folder))
+        folder_name = os.path.basename(interval_folder)
         area_map_dict = read_area_map(interval_folder, hours)
 
+        avg_tmp = []
         for i in range(len(hours) - 1):
             inters = hours[i:]
             analysis_result = chain_analysis(area_dict, area_map_dict, inters)
@@ -79,8 +85,25 @@ def label_analysis(base_path, area_suffix, interval_folders, hours):
             else:
                 print("failed")
 
-            save_label_result(analysis_result, interval_folder, inters)
+            avg_data, titles = save_label_result(analysis_result, interval_folder, inters)
+
+            if i == 0:
+                avg_tmp.extend(avg_data[3::2])
+                if folder_cnt == 0:
+                    total_head.extend(titles[3::2])
+            else:
+                avg_tmp.append(avg_data[3])
+                if folder_cnt == 0:
+                    total_head.append(titles[3])
+
+        total_result[folder_name] = [str(x) for x in avg_tmp]
         print("\n************** END **************\n")
+        folder_cnt += 1
+
+    with open("{}/result_collection.csv".format(base_path), "w") as total_file:
+        total_file.writelines(",".join(total_head) + "\n")
+        for folder_name in total_result:
+            total_file.writelines(",".join([folder_name] + total_result[folder_name]) + "\n")
 
 
 def save_label_result(result_dict, interval_folder, hours):
@@ -136,6 +159,8 @@ def save_label_result(result_dict, interval_folder, hours):
     with open("{}/result_{}-{}.csv".format(interval_folder, hours[0], hours[-1]), "w") as save_file:
         for l in save_lst:
             save_file.writelines(",".join(l) + "\n")
+
+    return tail_title, head_title
 
 
 def chain_analysis(area_dict, area_map_dict, hours):
