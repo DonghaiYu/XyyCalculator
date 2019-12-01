@@ -2,3 +2,4 @@
 .idea/codeStyles/*
 *.pyc
 data/*
+.DS_Store

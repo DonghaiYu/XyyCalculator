@@ -1,43 +1,37 @@
 # coding=utf-8
-"""
-from Tkinter import *
-from FileDialog import *
- 
-root = Tk()
- 
-fd = LoadFileDialog(root) # 创建打开文件对话框
-filename = fd.go()
-print(filename)
-"""
-from Tkinter import *
-from FileDialog import *
+from __future__ import division
+import math
+from scipy.spatial import distance
 
 
-class StdoutRedirector(object):
-    def __init__(self,text_widget):
-        self.text_space = text_widget
+def main():
+    data_lst = []
+    with open("data/0h+.csv", "r") as data:
+        line_cnt = 0
+        for line in data:
+            if line_cnt == 0:
+                line_cnt += 1
+                continue
+            items = line.strip().split(",")
+            if len(items) != 10:
+                continue
+            # print(float(items[1]))
+            tmp = [int(items[0])] + [float(x) for x in items[1:7]]
+            data_lst.append(tmp)
+    result = []
+    for record in data_lst:
+        for comp in data_lst:
+            if record[0] == comp[0]:
+                continue
+            c = distance.cosine(record[1:4], comp[1:4])
+            angle = math.degrees(math.acos(1 - c))
+            result.append([record[0], comp[0], angle])
+            print(record[0], comp[0], angle)
+    with open("data/angle.csv", "w") as res:
+        for r in result:
+            res.writelines("{},{},{}\n".format(*r))
 
-    def write(self,string):
-        self.text_space.insert('end', string)
-        self.text_space.see('end')
 
+if __name__ == "__main__":
+    main()
 
-class CoreGUI(object):
-    def __init__(self,parent):
-        self.parent = parent
-        self.InitUI()
-        button = Button(self.parent, text="Start", command=self.main)
-        button.grid(column=0, row=1, columnspan=2)
-
-    def main(self):
-        print('whatever')
-
-    def InitUI(self):
-        self.text_box = Text(self.parent, wrap='word', height = 11, width=50)
-        self.text_box.grid(column=0, row=0, columnspan = 2, sticky='NSWE', padx=5, pady=5)
-        sys.stdout = StdoutRedirector(self.text_box)
-
-
-root = Tk()
-gui = CoreGUI(root)
-root.mainloop()
