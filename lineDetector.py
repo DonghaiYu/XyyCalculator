@@ -29,6 +29,7 @@ def img_prepare(img_path, zoom_w, select_rec):
     """
     global zoomed_img, is_selected, zoom_ratio
     # 读取图片
+    print("prepare img")
     original = cv2.imread(img_path)
     if select_rec:
         is_selected = True
@@ -42,6 +43,8 @@ def img_prepare(img_path, zoom_w, select_rec):
         cv2.imshow('image', zoomed_img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+    else:
+        is_selected = False
 
     # 利用hSV格式提取红色部分
     # 设置hsv格式下的红色的值
@@ -73,7 +76,7 @@ def line_detector(img):
     fld = cv2.ximgproc.createFastLineDetector(10, 1.4, 50, 150, 3, True)
     lines = fld.detect(img)
     lines = [[[x[0][0], x[0][1]], [x[0][2], x[0][3]]] for x in lines]
-
+    print("totally {} lines detected".format(len(lines)))
     if is_selected:
         x_range = sorted([point1[0] / zoom_ratio, point2[0] / zoom_ratio])
         y_range = sorted([point1[1] / zoom_ratio, point2[1] / zoom_ratio])
@@ -85,6 +88,7 @@ def line_detector(img):
                     y_range[0] <= h[1] <= y_range[1],
                     y_range[0] <= t[1] <= y_range[1]]):
                 in_lines.append([[h[0], h[1]], [t[0], t[1]]])
+        print("here are {} line(s) in the rectangle area".format(len(in_lines)))
         return in_lines
 
     return lines
@@ -190,6 +194,7 @@ def clean_lines(lines, max_th=10, min_th=20):
             new_lines.append([[x1, y1], [x2, y2]])
         else:
             del_lines.append([[x1, y1], [x2, y2]])
+    print("delete {} repeated lines, remain {} useful lines".format(len(del_lines), len(new_lines)))
     return new_lines, del_lines
 
 
@@ -204,10 +209,13 @@ def format_result(origin_img, cleaned_lines, save_path):
         angle = math.degrees(math.acos(line_angle([[0, 0], [0, 10]], line_item)))
         result_lst.append([i, angle])
 
-    cv2.imwrite(save_path + "/line_result.png", draw_img)
-    with open(save_path + "/line_result.csv", "w") as lrd:
-        for idx, ag in result_lst:
-            lrd.writelines(",".join([str(idx), str(ag)]) + "\n")
+    return draw_img, result_lst
+    # cv2.imwrite(save_path + "/line_result.png", draw_img)
+    # with open(save_path + "/line_result.csv", "w") as lrd:
+    #     for idx, ag in result_lst:
+    #         lrd.writelines(",".join([str(idx), str(ag)]) + "\n")
+#
+    # print("result saved")
 
 
 def do_detect(path, zoom_w, select_rec):
@@ -220,7 +228,8 @@ def do_detect(path, zoom_w, select_rec):
     raw_img, blur_img = img_prepare(path, zoom_w, select_rec)
     lines = line_detector(blur_img)
     result_lines, del_lines = clean_lines(lines)
-    format_result(raw_img, result_lines, "data")
+    result_img, result_lines = format_result(raw_img, result_lines, "data")
+    return result_img, result_lines
 
 
 if __name__ == "__main__":

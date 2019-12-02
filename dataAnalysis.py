@@ -4,8 +4,10 @@ Author: Dylan
 For my love, XYY
 """
 import datetime
+import logging
 from tkinter.filedialog import *
 from tkinter import filedialog
+import cv2
 
 import core_functions
 import lineDetector
@@ -18,6 +20,26 @@ LINE_IMG = "line_img"
 ZOOM_VAR = "zoom_var"
 REC_VAR = "rec_var"
 
+
+class TextHandler(logging.Handler):
+    """This class allows you to log to a Tkinter Text or ScrolledText widget"""
+    def __init__(self, text):
+        # run the regular Handler __init__
+        logging.Handler.__init__(self)
+        # Store a reference to the Text it will log to
+        self.text = text
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.text.insert(END, msg + '\n')
+        # Autoscroll to the bottom
+        self.text.see(END)
+        #def append():
+        #    self.text.insert(END, msg + '\n')
+            # Autoscroll to the bottom
+        #    self.text.see(END)
+        # This is necessary because we can't modify the Text from other threads
+        #self.text.after(0, append)
 
 
 class StdoutRedirector(object):
@@ -46,11 +68,13 @@ class MainPanel:
         self.detail_frame = Frame(self.root)
         self.detail_frame.pack()
         self.log_frame = Frame(self.root)
+        self.logger = None
+        self.text_handler = None
         self.reload_log_frame()
 
         self.root.title("YyX's calculator")
         self.center_window(self.root, 800, 600)
-        self.root.mainloop()
+        # self.root.mainloop()
 
     def reload_log_frame(self):
         if self.log_frame is not None:
@@ -61,8 +85,9 @@ class MainPanel:
         text_box = Text(self.log_frame, wrap='word', height=20, width=100)
         clean_b.pack()
         text_box.pack()
-        sys.stdout = StdoutRedirector(text_box)
+        # sys.stdout = StdoutRedirector(text_box)
         self.log_frame.pack()
+        self.text_handler = TextHandler(text_box)
 
     def task1_frame(self):
         if self.detail_frame is not None:
@@ -80,6 +105,7 @@ class MainPanel:
         yang_sum_b.pack(side=LEFT)
         self.detail_frame.pack(fill=X)
         self.reload_log_frame()
+        self.logger.info("test")
 
     def task2_frame(self):
         if self.detail_frame is not None:
@@ -111,6 +137,7 @@ class MainPanel:
         cell_analysis_b.pack(side=LEFT)
         self.detail_frame.pack(fill=X)
         self.reload_log_frame()
+        logging.info("task2")
 
     def task3_frame(self):
         if self.detail_frame is not None:
@@ -152,7 +179,17 @@ class MainPanel:
         zoom_w = int(self.input_data.get(ZOOM_VAR).get())
         rec = int(self.input_data[REC_VAR].get())
         rec = True if rec == 1 else False
-        lineDetector.do_detect(img_path, zoom_w, rec)
+        result_img, result_lines = lineDetector.do_detect(img_path, zoom_w, rec)
+        f = filedialog.asksaveasfile(mode='w', defaultextension=".csv")
+        print("save line angle data in: " + f.name)
+        if f is None:  # asksaveasfile return `None` if dialog closed with "cancel".
+            return
+        result_img_path = f.name.split(".")[0] + ".png"
+        print("save line detector img in: " + result_img_path)
+        for idx, ang in result_lines:
+            f.writelines(",".join([str(idx), str(ang)]) + "\n")
+        f.close()
+        cv2.imwrite(result_img_path, result_img)
 
     def center_window(self, root, width, height):
         screenwidth = root.winfo_screenwidth()
@@ -238,6 +275,17 @@ class MainPanel:
 
 def main():
     main_panel = MainPanel()
+    logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+    logg = logging.getLogger()
+    textH = main_panel.text_handler
+    textH.setFormatter(logFormatter)
+    logg.addHandler(textH)
+    fileH = logging.FileHandler("data/log.log")
+    fileH.setFormatter(logFormatter)
+    logg.addHandler(fileH)
+    logg.setLevel(logging.DEBUG)
+    main_panel.logger = logg
+    main_panel.root.mainloop()
 
 
 if __name__ == "__main__":
