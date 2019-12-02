@@ -200,7 +200,7 @@ class MainPanel:
         zoom_w = int(self.input_data.get(ZOOM_VAR).get())
         rec = int(self.input_data[REC_VAR].get())
         rec = True if rec == 1 else False
-        result_img, result_lines = lineDetector.do_detect(img_path, zoom_w, rec, self.logger)
+        result_img, result_lines = lineDetector.do_detect(img_path, zoom_w, rec)
         f = filedialog.asksaveasfile(mode='w', defaultextension=".csv")
         logging.info("save line angle data in: " + f.name)
         if f is None:  # asksaveasfile return `None` if dialog closed with "cancel".
@@ -243,7 +243,7 @@ class MainPanel:
                 file_sort_index = int(file_name[:-4])
             except Exception as e:
                 file_sort_index = 0
-            sum_result, sum_line_num = core_functions.sum_data(file_item, self.logger)
+            sum_result, sum_line_num = core_functions.sum_data(file_item)
             result_lst.append([file_path, file_sort_index, file_name, sum_result, sum_line_num])
 
         result_lst.sort(key=lambda x: (x[0], x[1]))
@@ -291,7 +291,7 @@ class MainPanel:
         logging.info("label2label map data folders:")
         logging.info(interval_folders)
 
-        core_functions.label_analysis(data_folder, area_suffix, interval_folders, hours, self.logger)
+        core_functions.label_analysis(data_folder, area_suffix, interval_folders, hours)
 
 
 def main():
