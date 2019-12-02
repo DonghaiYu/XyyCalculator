@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import math
 
+import logging
+
 global point1, point2, zoomed_img, is_selected, zoom_ratio
 
 
@@ -29,7 +31,7 @@ def img_prepare(img_path, zoom_w, select_rec):
     """
     global zoomed_img, is_selected, zoom_ratio
     # 读取图片
-    print("prepare img")
+    logging.info("prepare img")
     original = cv2.imread(img_path)
     if select_rec:
         is_selected = True
@@ -76,7 +78,7 @@ def line_detector(img):
     fld = cv2.ximgproc.createFastLineDetector(10, 1.4, 50, 150, 3, True)
     lines = fld.detect(img)
     lines = [[[x[0][0], x[0][1]], [x[0][2], x[0][3]]] for x in lines]
-    print("totally {} lines detected".format(len(lines)))
+    logging.info("totally {} lines detected".format(len(lines)))
     if is_selected:
         x_range = sorted([point1[0] / zoom_ratio, point2[0] / zoom_ratio])
         y_range = sorted([point1[1] / zoom_ratio, point2[1] / zoom_ratio])
@@ -88,7 +90,7 @@ def line_detector(img):
                     y_range[0] <= h[1] <= y_range[1],
                     y_range[0] <= t[1] <= y_range[1]]):
                 in_lines.append([[h[0], h[1]], [t[0], t[1]]])
-        print("here are {} line(s) in the rectangle area".format(len(in_lines)))
+        logging.info("here are {} line(s) in the rectangle area".format(len(in_lines)))
         return in_lines
 
     return lines
@@ -194,7 +196,7 @@ def clean_lines(lines, max_th=10, min_th=20):
             new_lines.append([[x1, y1], [x2, y2]])
         else:
             del_lines.append([[x1, y1], [x2, y2]])
-    print("delete {} repeated lines, remain {} useful lines".format(len(del_lines), len(new_lines)))
+    logging.info("delete {} repeated lines, remain {} useful lines".format(len(del_lines), len(new_lines)))
     return new_lines, del_lines
 
 

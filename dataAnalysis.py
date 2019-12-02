@@ -20,6 +20,18 @@ LINE_IMG = "line_img"
 ZOOM_VAR = "zoom_var"
 REC_VAR = "rec_var"
 
+TASK1_INTRODUCTION = """
+    task1: sum Young modulus
+"""
+
+TASK2_INTRODUCTION = """
+    task2: time-series cell label analysis
+"""
+
+TASK3_INTRODUCTION = """
+    task3: line detector
+"""
+
 
 class TextHandler(logging.Handler):
     """This class allows you to log to a Tkinter Text or ScrolledText widget"""
@@ -31,15 +43,13 @@ class TextHandler(logging.Handler):
 
     def emit(self, record):
         msg = self.format(record)
-        self.text.insert(END, msg + '\n')
-        # Autoscroll to the bottom
-        self.text.see(END)
-        #def append():
-        #    self.text.insert(END, msg + '\n')
+
+        def append():
+            self.text.insert(END, msg + '\n')
             # Autoscroll to the bottom
-        #    self.text.see(END)
+            self.text.see(END)
         # This is necessary because we can't modify the Text from other threads
-        #self.text.after(0, append)
+        self.text.after(0, append)
 
 
 class StdoutRedirector(object):
@@ -78,34 +88,44 @@ class MainPanel:
 
     def reload_log_frame(self):
         if self.log_frame is not None:
+            #self.log_frame.pack_forget()
             self.log_frame.destroy()
         self.log_frame = Frame(self.root)
+
+        text_box = Text(self.log_frame, wrap='word', height=20, width=100)
         clean_b = Button(self.log_frame, text='clear log text', height=2, width=15,
                          command=lambda: text_box.delete('1.0', 'end'))
-        text_box = Text(self.log_frame, wrap='word', height=20, width=100)
-        clean_b.pack()
+        logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+        self.file_handler = logging.FileHandler("data/log.log")
+        self.text_handler = TextHandler(text_box)
+        self.text_handler.setFormatter(logFormatter)
+        self.file_handler.setFormatter(logFormatter)
+        self.logger = logging.getLogger()
+        self.logger.handlers = []
+        self.logger.addHandler(self.text_handler)
+        self.logger.addHandler(self.file_handler)
+        self.logger.setLevel(logging.DEBUG)
+
         text_box.pack()
+        clean_b.pack()
         # sys.stdout = StdoutRedirector(text_box)
         self.log_frame.pack()
-        self.text_handler = TextHandler(text_box)
 
     def task1_frame(self):
         if self.detail_frame is not None:
             self.detail_frame.destroy()
-
         # 杨氏模量求和模块
         self.detail_frame = Frame(self.root)
-        detail_title = Label(self.detail_frame, text="sum Young modulus", anchor=W)
         yang_folder_b = Button(self.detail_frame, text="choose folder", height=2, width=10,
                                command=lambda: self.askdirectory(YANG_FOLDER))
         yang_sum_b = Button(self.detail_frame, text="run", height=2, width=5, fg='red',
                             command=self.sum_all_yang_value)
-        detail_title.pack()
+
         yang_folder_b.pack(side=LEFT)
         yang_sum_b.pack(side=LEFT)
         self.detail_frame.pack(fill=X)
         self.reload_log_frame()
-        self.logger.info("test")
+        logging.info(TASK1_INTRODUCTION)
 
     def task2_frame(self):
         if self.detail_frame is not None:
@@ -137,7 +157,7 @@ class MainPanel:
         cell_analysis_b.pack(side=LEFT)
         self.detail_frame.pack(fill=X)
         self.reload_log_frame()
-        logging.info("task2")
+        logging.info(TASK2_INTRODUCTION)
 
     def task3_frame(self):
         if self.detail_frame is not None:
@@ -170,22 +190,23 @@ class MainPanel:
         line_detect_b.pack(side=LEFT)
         self.detail_frame.pack(fill=X)
         self.reload_log_frame()
+        logging.info(TASK3_INTRODUCTION)
 
     def line_detect(self):
         img_path = self.input_data.get(LINE_IMG, None)
         if img_path is None or img_path == '':
-            print("please choose detect img first!")
+            logging.error("please choose detect img first!")
             return
         zoom_w = int(self.input_data.get(ZOOM_VAR).get())
         rec = int(self.input_data[REC_VAR].get())
         rec = True if rec == 1 else False
-        result_img, result_lines = lineDetector.do_detect(img_path, zoom_w, rec)
+        result_img, result_lines = lineDetector.do_detect(img_path, zoom_w, rec, self.logger)
         f = filedialog.asksaveasfile(mode='w', defaultextension=".csv")
-        print("save line angle data in: " + f.name)
+        logging.info("save line angle data in: " + f.name)
         if f is None:  # asksaveasfile return `None` if dialog closed with "cancel".
             return
         result_img_path = f.name.split(".")[0] + ".png"
-        print("save line detector img in: " + result_img_path)
+        logging.info("save line detector img in: " + result_img_path)
         for idx, ang in result_lines:
             f.writelines(",".join([str(idx), str(ang)]) + "\n")
         f.close()
@@ -199,11 +220,11 @@ class MainPanel:
 
     def askdirectory(self, param_name):
         self.input_data[param_name] = filedialog.askdirectory()
-        print("your selected folder: {}".format(self.input_data[param_name]))
+        logging.info("your selected folder: {}".format(self.input_data[param_name]))
 
     def ask_file_name(self, param_name):
         self.input_data[param_name] = filedialog.askopenfilename()
-        print("your selected file is: {}".format(self.input_data[param_name]))
+        logging.info("your selected file is: {}".format(self.input_data[param_name]))
 
     def sum_all_yang_value(self):
         """
@@ -212,7 +233,7 @@ class MainPanel:
         """
         folder_path = self.input_data.get(YANG_FOLDER, None)
         if folder_path is None or folder_path == '':
-            print("please choose folder first!")
+            logging.error("please choose folder first!")
             return
         files = core_functions.get_files(folder_path, ".txt")
         result_lst = []
@@ -222,7 +243,7 @@ class MainPanel:
                 file_sort_index = int(file_name[:-4])
             except Exception as e:
                 file_sort_index = 0
-            sum_result, sum_line_num = core_functions.sum_data(file_item)
+            sum_result, sum_line_num = core_functions.sum_data(file_item, self.logger)
             result_lst.append([file_path, file_sort_index, file_name, sum_result, sum_line_num])
 
         result_lst.sort(key=lambda x: (x[0], x[1]))
@@ -231,7 +252,7 @@ class MainPanel:
         with open("./data/Young_modulus_sum_{}.csv".format(current_time), "w") as result_file:
             result_file.writelines(",".join(["folder path", "file index", "file name", "sum result", "file line num"]) + "\n")
             for item in result_lst:
-                print(item)
+                logging.info(item)
                 items = [str(x) for x in item]
                 result_file.writelines(",".join(items) + "\n")
 
@@ -247,11 +268,11 @@ class MainPanel:
 
         data_folder = self.input_data.get(CELL_LABEL_FOLDER, None)
         if data_folder is None or data_folder == '':
-            print("please choose folder first!")
+            logging.error("please choose folder first!")
             return
 
         if not os.path.isdir(data_folder):
-            print("error! unknown data path: {}".format(data_folder))
+            logging.error("unknown data path: {}".format(data_folder))
             return
         for f in os.listdir(data_folder):
             if f in area_f_set:
@@ -261,30 +282,20 @@ class MainPanel:
                 interval_folders.append(abs_path)
 
         if len(find_area_f_set) == len(area_f_set):
-            print("find all the area files, success. area files:")
-            print(area_files)
+            logging.info("find all the area files, success. area files:")
+            logging.info(area_files)
         else:
-            print("error! can not find {}".format(area_f_set - find_area_f_set))
+            logging.error("error! can not find {}".format(area_f_set - find_area_f_set))
             return
 
-        print("label2label map data folders:")
-        print(interval_folders)
+        logging.info("label2label map data folders:")
+        logging.info(interval_folders)
 
-        core_functions.label_analysis(data_folder, area_suffix, interval_folders, hours)
+        core_functions.label_analysis(data_folder, area_suffix, interval_folders, hours, self.logger)
 
 
 def main():
     main_panel = MainPanel()
-    logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
-    logg = logging.getLogger()
-    textH = main_panel.text_handler
-    textH.setFormatter(logFormatter)
-    logg.addHandler(textH)
-    fileH = logging.FileHandler("data/log.log")
-    fileH.setFormatter(logFormatter)
-    logg.addHandler(fileH)
-    logg.setLevel(logging.DEBUG)
-    main_panel.logger = logg
     main_panel.root.mainloop()
 
 

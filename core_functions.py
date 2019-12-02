@@ -6,6 +6,7 @@ For my love, XYY
 import os
 import copy
 import collections
+import logging
 
 
 def sum_data(file_name):
@@ -28,13 +29,13 @@ def sum_data(file_name):
                 continue
             items = line.strip().split("\t")
             if len(items) < 2:
-                print("please check data quality in " + file_name)
+                logging.warning("please check data quality in " + file_name)
                 continue
             try:
                 mpa = float(items[0]) / unit_level
                 per = float(items[1])
             except Exception as e:
-                print("data type not float, please check " + file_name)
+                logging.error("data type not float, please check " + file_name)
                 continue
             result += mpa * per
             line_num += 1
@@ -71,8 +72,8 @@ def label_analysis(base_path, area_suffix, interval_folders, hours):
     folder_cnt = 0
     total_head = [""]
     for interval_folder in interval_folders:
-        print("\n************** START **************\n")
-        print("analysis {}".format(interval_folder))
+        logging.info("\n************** START **************\n")
+        logging.info("analysis {}".format(interval_folder))
         folder_name = os.path.basename(interval_folder)
         area_map_dict = read_area_map(interval_folder, hours)
 
@@ -81,9 +82,9 @@ def label_analysis(base_path, area_suffix, interval_folders, hours):
             inters = hours[i:]
             analysis_result = chain_analysis(area_dict, area_map_dict, inters)
             if analysis_result:
-                print("success")
+                logging.info("success")
             else:
-                print("failed")
+                logging.info("failed")
 
             avg_data, titles = save_label_result(analysis_result, interval_folder, inters)
 
@@ -97,7 +98,7 @@ def label_analysis(base_path, area_suffix, interval_folders, hours):
                     total_head.append(titles[3])
 
         total_result[folder_name] = [str(x) for x in avg_tmp]
-        print("\n************** END **************\n")
+        logging.info("\n************** END **************\n")
         folder_cnt += 1
 
     with open("{}/result_collection.csv".format(base_path), "w") as total_file:
@@ -166,16 +167,16 @@ def save_label_result(result_dict, interval_folder, hours):
 def chain_analysis(area_dict, area_map_dict, hours):
     result_dict = {}
     for i in range(1, len(hours)):
-        print("##############################\n")
-        print("{}-{}".format(hours[0], hours[i]))
+        logging.info("##############################\n")
+        logging.info("{}-{}".format(hours[0], hours[i]))
         tmp_result = {}
         tail_h_index = i
         pre_h_index = i - 1
 
         invalid_labels_set = check_invalid_label(area_dict, area_map_dict, hours, tail_h_index)
 
-        print("invalid labels: ({})".format(len(invalid_labels_set)))
-        print(invalid_labels_set)
+        logging.info("invalid labels: ({})".format(len(invalid_labels_set)))
+        logging.info(invalid_labels_set)
 
         tmp_map_dict = copy.deepcopy(area_map_dict[hours[pre_h_index], hours[tail_h_index]])
         while pre_h_index != 0:
@@ -200,9 +201,9 @@ def chain_analysis(area_dict, area_map_dict, hours):
             start_area = area_dict[hours[0]][k]
             end_area = tail_area_dict[k]
             tmp_result[k] = [start_area, end_area, end_area / start_area]
-            # print(k, area_dict[hours[0]][k], tail_area_dict[k])
+            # logging.info(k, area_dict[hours[0]][k], tail_area_dict[k])
             x += 1
-        print("total {}".format(x))
+        logging.info("total {}".format(x))
         result_dict[hours[0], hours[i]] = tmp_result
     return result_dict
 
@@ -236,8 +237,8 @@ def check_invalid_label(area_dict, area_map_dict, hours, tail_index):
 
 def read_cell_area(base_path, area_suffix, hours):
 
-    print("*******************************")
-    print("start load cell area data")
+    logging.info("*******************************")
+    logging.info("start load cell area data")
     area_dict = {}
 
     for h in hours:
@@ -255,16 +256,16 @@ def read_cell_area(base_path, area_suffix, hours):
                 area_dict[h][int(items[0])] = float(items[1])
                 i += 1
 
-            print("{} label area in {}{}.csv".format(i, h, area_suffix))
-    print(area_dict.keys())
-    print("finish")
-    print("*******************************")
+            logging.info("{} label area in {}{}.csv".format(i, h, area_suffix))
+    logging.info(area_dict.keys())
+    logging.info("finish")
+    logging.info("*******************************")
     return area_dict
 
 
 def read_area_map(interval_folder, hours):
 
-    print("load label_parent-label data ({})".format(interval_folder))
+    logging.info("load label_parent-label data ({})".format(interval_folder))
     area_map_dict = {}
 
     for i in range(len(hours) - 1):
@@ -284,5 +285,5 @@ def read_area_map(interval_folder, hours):
                 pre_l = int(items[1])
                 area_map_dict[head_h, tail_h][new_l] = pre_l
                 k += 1
-            print("{} map data in {}".format(k, map_file))
+            logging.info("{} map data in {}".format(k, map_file))
     return area_map_dict
