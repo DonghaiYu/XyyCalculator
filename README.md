@@ -1,3 +1,10 @@
+usage:
+1. 进入XyyCalculator文件夹
+2. 空白处右击，选 Git bash here, 出现一个黑框
+3. 输入 git pull， 回车。代码就更新啦
+4. 继续，输入 python3 dataAnalysis.py 运行程序
+
+
 功能介绍：
 1. 杨氏模量求和  
 步骤：  
