@@ -7,18 +7,24 @@ import datetime
 import logging
 from tkinter.filedialog import *
 from tkinter import filedialog
+from tkinter import ttk
 import cv2
 
 import core_functions
 import lineDetector
+import find_diff as fd
 
 YANG_FOLDER = "yang_folder"
 CELL_LABEL_FOLDER = "cell_label_folder"
+FIND_DIFF_FILE = "find_diff_file"
 HOURS_VAR = "hours_var"
 SUFFIX_VAR = "suffix_var"
 LINE_IMG = "line_img"
 ZOOM_VAR = "zoom_var"
 REC_VAR = "rec_var"
+SHEET_NAMES = "sheet_names"
+SHEET_NAME_LST = "sheet_name_lst"
+FIND_DIFF_DATA = "find_diff_data"
 
 TASK1_INTRODUCTION = """
     task1: sum Young modulus
@@ -30,6 +36,10 @@ TASK2_INTRODUCTION = """
 
 TASK3_INTRODUCTION = """
     task3: line detector
+"""
+
+FIND_DIFF_INTRODUCTION = """
+    FIND_DIFF: find gene diff
 """
 
 
@@ -71,9 +81,11 @@ class MainPanel:
         t1 = Button(self.head_frame, text="task1", height=2, width=15, command=self.task1_frame)
         t2 = Button(self.head_frame, text="task2", height=2, width=15, command=self.task2_frame)
         t3 = Button(self.head_frame, text="task3", height=2, width=15, command=self.task3_frame)
+        t4 = Button(self.head_frame, text="FIND_DIFF", height=2, width=15, command=self.find_diff_frame)
         t1.pack(side=LEFT)
         t2.pack(side=LEFT)
         t3.pack(side=LEFT)
+        t4.pack(side=LEFT)
         self.head_frame.pack()
         self.detail_frame = Frame(self.root)
         self.detail_frame.pack()
@@ -191,6 +203,58 @@ class MainPanel:
         self.detail_frame.pack(fill=X)
         self.reload_log_frame()
         logging.info(TASK3_INTRODUCTION)
+
+    def find_diff_frame(self):
+        if self.detail_frame is not None:
+            self.detail_frame.destroy()
+        # 杨氏模量求和模块
+        self.detail_frame = Frame(self.root)
+        sheets = StringVar()
+
+        folder_b = Button(self.detail_frame, text="choose file", height=2, width=10,
+                          command=lambda: self.ask_file_name(FIND_DIFF_FILE))
+        sheet_name_label = Label(self.detail_frame, text=" sheet names(',' separated):")
+        sheet_names = Entry(self.detail_frame, width=20, textvariable=sheets)
+        self.input_data[SHEET_NAMES] = sheet_names
+
+        join_type_label = Label(self.detail_frame, text='数据join方式：')
+        join_type_box = ttk.Combobox(self.detail_frame, width=10)
+        join_type_box['value'] = ('加前缀', '不加前缀')
+        join_type_box.current(1)
+
+        load_b = Button(self.detail_frame, text="load", height=2, width=5, fg='red',
+                       command=self.load_find_diff_data)
+        run_b = Button(self.detail_frame, text="run", height=2, width=5, fg='red',
+                            command=self.run_find_diff)
+
+        folder_b.pack(side=LEFT)
+        sheet_name_label.pack(side=LEFT)
+        sheet_names.pack(side=LEFT)
+        join_type_label.pack(side=LEFT)
+        join_type_box.pack(side=LEFT)
+        load_b.pack(side=LEFT)
+        run_b.pack(side=LEFT)
+        self.detail_frame.pack(fill=X)
+        self.reload_log_frame()
+        logging.info(FIND_DIFF_INTRODUCTION)
+
+    def load_find_diff_data(self):
+        data_path = self.input_data.get(FIND_DIFF_FILE, None)
+        if data_path is None or data_path == '':
+            logging.error("please choose your xls file first!")
+            return
+        s_names = self.input_data.get(SHEET_NAMES, None)
+        if s_names is None or s_names == '':
+            logging.error("sheet names must be not empty!")
+            return
+        sheet_names = s_names.get().strip().split(",")
+        self.input_data[SHEET_NAME_LST] = sheet_names
+        data_dict = fd.load_data(data_path, sheet_names)
+        self.input_data[FIND_DIFF_DATA] = data_dict
+
+    def run_find_diff(self):
+
+        fd.run_analysis(self.input_data[SHEET_NAME_LST], self.input_data[FIND_DIFF_DATA])
 
     def line_detect(self):
         img_path = self.input_data.get(LINE_IMG, None)
