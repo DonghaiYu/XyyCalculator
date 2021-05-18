@@ -12,6 +12,8 @@ import platform
 
 import pandas as pd
 import math
+import scipy.stats as stats
+
 
 # 这写列表用于指定从哪个sheet取那几列数据
 col_followup = ["疾病亚型", "病理分期", "手术病理分期（pTNM）", "是否复发"]
@@ -161,6 +163,12 @@ def enum_report(data, columns):
 
 
 def load_data(file_name, sheet_names):
+    """
+    加载excel数据
+    :param file_name: string, 文件路径
+    :param sheet_names: list, 需要读取的sheet名称
+    :return:
+    """
     sys_type = platform.system()
     xls_engine = None
     if sys_type != "Windows":
@@ -175,17 +183,66 @@ def load_data(file_name, sheet_names):
     return data_df
 
 
-def run_analysis(sheet_lst, data_dict):
-    all_data = None
-    for sheet in sheet_lst:
-        if all_data is None:
-            all_data = data_dict[sheet]
-        else:
-            all_data = pd.merge(all_data, data_dict[sheet], how="outer", on="姓名")
+def run_analysis(data_dict):
+    """
 
-    users = all_data[["姓名"]].drop_duplicates()
+    :param data_dict:
+    :return:
+    """
+    all_data = dict()
+
+    base_df = data_dict["临床信息"]
+
+    users = base_df[["patientID"]].drop_duplicates()
     logging.info("共读取到 {} 位患者数据，概况如下：".format(len(users)))
     logging.info(users)
+
+    # fisher检验的列名: （此列考察的两种取值）
+    fisher_objects = {
+        "性别": ("男", "女"),
+        "吸烟史": ("有", "无"),
+        "N": (0, 1),
+        "M": (0, 1)
+    }
+
+    # t检验的列名
+    t_objects = ["确诊年龄"]
+
+    for sheet in ["胚系", "SNV", "SV"]:
+        tmp_df = data_dict[sheet]
+        if sheet == "SNV":
+            tmp_df = tmp_df[tmp_df["基因"] == "TERT"]
+        elif sheet == "SV":
+            tmp_df = tmp_df[tmp_df["是否有药物提示"] == "是"]
+        tmp_df.loc[:, "exist_flag"] = 1
+
+        item_df = pd.merge(base_df, tmp_df, how="outer", on="patientID")
+
+        pair_df = {
+            0: item_df[item_df["exist_flag"] != 1].drop_duplicates(subset=["patientID"]),
+            1: item_df[item_df["exist_flag"] == 1].drop_duplicates(subset=["patientID"])
+        }
+
+        all_data[sheet] = pair_df
+        logging.info("in {}".format(sheet))
+        logging.info("{}(exist) vs {}(not exist)".format(len(pair_df[1]), len(pair_df[0])))
+
+        with open("data/{}_fisher_data.txt".format(sheet), "w") as ff:
+            ff.writelines(",".join(["column_name", "exist_0", "exist_1", "not_exist_0", "not_exist_1", "p", "oddsratio"]) + "\n")
+            for col in fisher_objects:
+                e_df, ne_df = pair_df[1], pair_df[0]
+                a = len(e_df[e_df[col] == fisher_objects[col][0]])
+                b = len(e_df[e_df[col] == fisher_objects[col][1]])
+                c = len(ne_df[ne_df[col] == fisher_objects[col][0]])
+                d = len(ne_df[ne_df[col] == fisher_objects[col][1]])
+                oddsratio, p = stats.fisher_exact([[a, b], [c, d]])
+                logging.info("{} - {}: p={},oddr={}".format(sheet, col, p, oddsratio))
+                ff.writelines(",".join([col, str(a), str(b), str(c), str(d), str(p), str(oddsratio)]) + "\n")
+
+        for col in t_objects:
+            e_df, ne_df = pair_df[1], pair_df[0]
+            tmp = stats.ttest_ind(e_df[col].to_list(), ne_df[col].to_list())
+            print()
 
 
 def main():

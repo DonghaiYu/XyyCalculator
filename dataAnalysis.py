@@ -25,6 +25,7 @@ REC_VAR = "rec_var"
 SHEET_NAMES = "sheet_names"
 SHEET_NAME_LST = "sheet_name_lst"
 FIND_DIFF_DATA = "find_diff_data"
+JOIN_TYPE = "join_type"
 
 TASK1_INTRODUCTION = """
     task1: sum Young modulus
@@ -211,27 +212,15 @@ class MainPanel:
         self.detail_frame = Frame(self.root)
         sheets = StringVar()
 
-        folder_b = Button(self.detail_frame, text="choose file", height=2, width=10,
-                          command=lambda: self.ask_file_name(FIND_DIFF_FILE))
-        sheet_name_label = Label(self.detail_frame, text=" sheet names(',' separated):")
-        sheet_names = Entry(self.detail_frame, width=20, textvariable=sheets)
-        self.input_data[SHEET_NAMES] = sheet_names
-
-        join_type_label = Label(self.detail_frame, text='数据join方式：')
-        join_type_box = ttk.Combobox(self.detail_frame, width=10)
-        join_type_box['value'] = ('加前缀', '不加前缀')
-        join_type_box.current(1)
+        file_b = Button(self.detail_frame, text="choose file", height=2, width=10,
+                        command=lambda: self.ask_file_name(FIND_DIFF_FILE))
 
         load_b = Button(self.detail_frame, text="load", height=2, width=5, fg='red',
-                       command=self.load_find_diff_data)
+                        command=self.load_find_diff_data)
         run_b = Button(self.detail_frame, text="run", height=2, width=5, fg='red',
-                            command=self.run_find_diff)
+                       command=self.run_find_diff)
 
-        folder_b.pack(side=LEFT)
-        sheet_name_label.pack(side=LEFT)
-        sheet_names.pack(side=LEFT)
-        join_type_label.pack(side=LEFT)
-        join_type_box.pack(side=LEFT)
+        file_b.pack(side=LEFT)
         load_b.pack(side=LEFT)
         run_b.pack(side=LEFT)
         self.detail_frame.pack(fill=X)
@@ -243,18 +232,13 @@ class MainPanel:
         if data_path is None or data_path == '':
             logging.error("please choose your xls file first!")
             return
-        s_names = self.input_data.get(SHEET_NAMES, None)
-        if s_names is None or s_names == '':
-            logging.error("sheet names must be not empty!")
-            return
-        sheet_names = s_names.get().strip().split(",")
-        self.input_data[SHEET_NAME_LST] = sheet_names
-        data_dict = fd.load_data(data_path, sheet_names)
+
+        data_dict = fd.load_data(data_path, ["临床信息", "胚系", "SNV", "SV"])
         self.input_data[FIND_DIFF_DATA] = data_dict
 
     def run_find_diff(self):
 
-        fd.run_analysis(self.input_data[SHEET_NAME_LST], self.input_data[FIND_DIFF_DATA])
+        fd.run_analysis(self.input_data[FIND_DIFF_DATA])
 
     def line_detect(self):
         img_path = self.input_data.get(LINE_IMG, None)
